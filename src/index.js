@@ -11,10 +11,18 @@ class DownloadManager {
    * Initialize the download manager
    * @constructor
    * @public
+   * @param {Object} options The download manager options
+   * @param {Number} options.abandonedTimeout The time in milliseconds to wait before abandoning a download (default: 30 minutes)
+   * @param {Number} options.defaultDelayInSeconds The default delay in seconds to wait before starting a download (default: 0). This is used when a download is scheduled but the delay is not specified in the options object.
    */
-  constructor() {
+  constructor(options) {
+    // Internal state
     this.currentDownloads = {};
     this.scheduledDownloads = {};
+
+    // Options
+    this.abandonedTimeout = options.abandonedTimeout ?? 1800000;
+    this.defaultDelayInSeconds = options.defaultDelayInSeconds ?? 0;
   }
 
   /**
@@ -41,7 +49,7 @@ class DownloadManager {
       const download = this.currentDownloads[filePath]
 
       // Check that download is not older than 30 minutes
-      if (download && download.startTime && (Date.now() - download.startTime) > 1800000) {
+      if (download && download.startTime && (Date.now() - download.startTime) > this.abandonedTimeout) {
         // Delete the download
         delete this.currentDownloads[filePath]
         // Remove temporary file
@@ -49,7 +57,7 @@ class DownloadManager {
           fs.unlinkSync(filePath)
         }
         // Reject the promise
-        reject('Download is older than 30 minutes')
+        reject(`Download is older than ${this.abandonedTimeout / 1000} seconds`)
         return;
       }
 
@@ -112,14 +120,15 @@ class DownloadManager {
         reject(`Duplicate download: cannot schedule a download while another is in progress`)
         return;
       }
+      const delay = options.delayInSeconds ?? this.defaultDelayInSeconds
       const timeout = setTimeout(() => {
         delete options.delayInSeconds
         delete this.scheduledDownloads[filePath]
         this.start(filePath, requestConfig, options).then(resolve).catch(reject)
-      }, options.delayInSeconds * 1000)
+      }, delay * 1000)
 
       this.scheduledDownloads[filePath] = {
-        startTime: Date.now() + (options.delayInSeconds * 1000),
+        startTime: Date.now() + (delay * 1000),
         timeout
       }
     })
