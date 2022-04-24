@@ -15,14 +15,14 @@ class DownloadManager {
    * @param {Number} options.abandonedTimeout The time in milliseconds to wait before abandoning a download (default: 30 minutes)
    * @param {Number} options.defaultDelayInSeconds The default delay in seconds to wait before starting a download (default: 0). This is used when a download is scheduled but the delay is not specified in the options object.
    */
-  constructor(options) {
+  constructor(options={}) {
     // Internal state
     this.currentDownloads = {};
     this.scheduledDownloads = {};
 
     // Options
-    this.abandonedTimeout = options.abandonedTimeout ?? 1800000;
-    this.defaultDelayInSeconds = options.defaultDelayInSeconds ?? 0;
+    this.abandonedTimeout = options?.abandonedTimeout ?? 1800000;
+    this.defaultDelayInSeconds = options?.defaultDelayInSeconds ?? 0;
   }
 
   /**
