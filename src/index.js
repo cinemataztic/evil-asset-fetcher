@@ -1,6 +1,6 @@
 const fetch = require('node-fetch')
 const fs = require('fs')
-
+const extract = require('extract-zip')
 
 /**
  * Download a file from a url
@@ -14,15 +14,70 @@ class DownloadManager {
    * @param {Object} options The download manager options
    * @param {Number} options.abandonedTimeout The time in milliseconds to wait before abandoning a download (default: 30 minutes)
    * @param {Number} options.defaultDelayInSeconds The default delay in seconds to wait before starting a download (default: 0). This is used when a download is scheduled but the delay is not specified in the options object.
+   * @param {Boolean} options.disableUnzip If true, don't unzip the downloaded zip file (default: false)
+   * @param {Array} options.downloadManifest The list of files to download (default: [])
+   * @param {Number} options.downloadManifest.delayInSeconds The delay in seconds to wait before starting the download (default: 1 minute)
+   * @param {String} options.downloadManifest.filePath The path to save the file to
+   * @param {String} options.downloadManifest.url The url to download the file from
+   * @param {String} options.downloadManifest.unzipPath The path to unzip the downloaded file to
+   * @param {String} options.downloadManifest.unzipTo The path to unzip the downloaded file to
+   * @param {Number} options.interval The interval in milliseconds at which to download/check for downloads (default: 1 minute)
+   * @param {Boolean} options.verbose If true, print out debug messages (default: false)
    */
   constructor(options={}) {
     // Internal state
     this.currentDownloads = {};
     this.scheduledDownloads = {};
+    this._downloadInterval;
 
     // Options
     this.abandonedTimeout = options?.abandonedTimeout ?? 1800000;
     this.defaultDelayInSeconds = options?.defaultDelayInSeconds ?? 0;
+    this.disableUnzip = options?.disableUnzip ?? false;
+    this.downloadManifest = options?.downloadManifest ? options.downloadManifest.map(manifest => ({
+        delayInSeconds: manifest.delayInSeconds ?? 60,
+        filePath: manifest.filePath,
+        url: manifest.url,
+        unzipPath: manifest.unzipPath,
+        unzipTo: manifest.unzipTo
+      })) : [];
+    this.interval = options?.interval ?? 60000;
+    this.verbose = options?.verbose ?? false;
+  }
+
+  init() {
+    // Initialize the download of the files in the manifest if they don't already exist in the download directory
+    // Set interval to check for downloads every minute
+    this._logger(`Initializing download manager\nDownload interval set to ${this.interval / 1000} seconds`)
+    this._downloadInterval = setInterval(() => {
+      this._logger('Checking for downloads')
+      this.downloadManifest.forEach(async (manifest) => {
+        this._logger(`Checking for ${manifest.filePath}`)
+        try {
+          const file = await this.start(manifest.filePath, {
+            url: manifest.url
+          }, {
+            delayInSeconds: manifest.delayInSeconds
+          });
+        } catch (err) {
+          this._logger(`Error downloading ${manifest.filePath}: ${err}`)
+        }
+
+        // If the file is a zip file, the manifest has unzipPath and unzipTo properties and unzip is not disabled
+        // Unzip the file
+        const fileName = manifest.filePath.split('/').pop()
+        if (fileName.indexOf('.zip') > -1 && manifest.unzipPath && manifest.unzipTo && !this.disableUnzip) {
+          // Unzip the file to the directory
+          extract(file, {
+            dir: manifest.unzipTo
+          }, (err) => {
+            if (err) {
+              this._logger(`Error unzipping file: ${err}`)
+            }
+          });
+        }
+      });
+    }, this.interval)
   }
 
   /**
@@ -43,7 +98,7 @@ class DownloadManager {
       clearTimeout(this.currentDownloads[filePath].timeout)
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
 
       // Const get download from the current downloads
       const download = this.currentDownloads[filePath]
@@ -84,7 +139,7 @@ class DownloadManager {
       }
       // Start a new download
       const file = fs.createWriteStream(filePath)
-      const res = fetch(requestConfig.path, requestConfig)
+      const res = await fetch(requestConfig.url, requestConfig)
       res.body.pipe(file)
       res.body.on('error', (err) => {
         // Remove the file from the current downloads
@@ -132,6 +187,22 @@ class DownloadManager {
         timeout
       }
     })
+  }
+
+  // HELPERS
+  /**
+   * Log a message if the verbose option is set to true
+   * @param {String} message The message to log
+   * @private
+   * @returns {void}
+   * @example
+   * this._logger('Hello World')
+   * // => 'Hello World'
+   */
+  _logger(message) {
+    if (this.verbose) {
+      console.log(message)
+    }
   }
 }
 
