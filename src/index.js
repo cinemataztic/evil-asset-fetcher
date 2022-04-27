@@ -51,7 +51,7 @@ class DownloadManager {
     this._logger(`Initializing download manager\nDownload interval set to ${this.interval / 1000} seconds`)
     this._downloadInterval = setInterval(() => {
       this._logger('Checking for downloads')
-      this.downloadManifest.forEach(async (manifest) => {
+      this._checkLocalCache()?.forEach(async (manifest) => {
         this._logger(`Checking for ${manifest.filePath}`)
         try {
           const file = await this.start(manifest.filePath, {
@@ -79,6 +79,20 @@ class DownloadManager {
       });
     }, this.interval)
   }
+
+  /**
+   * Check the local cache (file system) for the files in the manifest and return the files that don't exist
+   * @returns {Array} The list of files that don't exist in the local cache
+   */
+  _checkLocalCache() {
+    // Check the local cache for the files in the manifest
+    const missingFiles = this.downloadManifest.filter(manifest => {
+      return !fs.existsSync(manifest.filePath)
+    })
+
+    return missingFiles
+  }
+
 
   /**
    * Start a file download
