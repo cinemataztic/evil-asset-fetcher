@@ -19,7 +19,6 @@ class DownloadManager {
    * @param {Number} options.downloadManifest.delayInSeconds The delay in seconds to wait before starting the download (default: 1 minute)
    * @param {String} options.downloadManifest.filePath The path to save the file to
    * @param {String} options.downloadManifest.url The url to download the file from
-   * @param {String} options.downloadManifest.unzipPath The path to unzip the downloaded file to
    * @param {String} options.downloadManifest.unzipTo The path to unzip the downloaded file to
    * @param {Number} options.interval The interval in milliseconds at which to download/check for downloads (default: 1 minute)
    * @param {Boolean} options.verbose If true, print out debug messages (default: false)
@@ -38,7 +37,6 @@ class DownloadManager {
         delayInSeconds: manifest.delayInSeconds ?? 60,
         filePath: manifest.filePath,
         url: manifest.url,
-        unzipPath: manifest.unzipPath,
         unzipTo: manifest.unzipTo
       })) : [];
     this.interval = options?.interval ?? 60000;
@@ -60,10 +58,10 @@ class DownloadManager {
             delayInSeconds: manifest.delayInSeconds
           });
 
-          // If the file is a zip file, the manifest has unzipPath and unzipTo properties and unzip is not disabled
+          // If the file is a zip file, the manifest has unzipTo property and unzip is not disabled
           // Unzip the file
           const fileName = file.split('/').pop()
-          if (fileName.indexOf('.zip') > -1 && manifest.unzipPath && manifest.unzipTo && !this.disableUnzip) {
+          if (fileName.indexOf('.zip') > -1 && manifest.unzipTo && !this.disableUnzip) {
             // Unzip the file to the directory
             extract(file, {
               dir: manifest.unzipTo
