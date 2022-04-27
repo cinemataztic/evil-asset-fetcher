@@ -59,22 +59,22 @@ class DownloadManager {
           }, {
             delayInSeconds: manifest.delayInSeconds
           });
+
+          // If the file is a zip file, the manifest has unzipPath and unzipTo properties and unzip is not disabled
+          // Unzip the file
+          const fileName = file.split('/').pop()
+          if (fileName.indexOf('.zip') > -1 && manifest.unzipPath && manifest.unzipTo && !this.disableUnzip) {
+            // Unzip the file to the directory
+            extract(file, {
+              dir: manifest.unzipTo
+            }, (err) => {
+              if (err) {
+                this._logger(`Error unzipping file: ${err}`)
+              }
+            });
+          }
         } catch (err) {
           this._logger(`Error downloading ${manifest.filePath}: ${err}`)
-        }
-
-        // If the file is a zip file, the manifest has unzipPath and unzipTo properties and unzip is not disabled
-        // Unzip the file
-        const fileName = manifest.filePath.split('/').pop()
-        if (fileName.indexOf('.zip') > -1 && manifest.unzipPath && manifest.unzipTo && !this.disableUnzip) {
-          // Unzip the file to the directory
-          extract(file, {
-            dir: manifest.unzipTo
-          }, (err) => {
-            if (err) {
-              this._logger(`Error unzipping file: ${err}`)
-            }
-          });
         }
       });
     }, this.interval)
