@@ -22,6 +22,7 @@ class DownloadManager {
    * @param {String} options.downloadManifest.unzipTo The path to unzip the downloaded file to
    * @param {Number} options.interval The interval in milliseconds at which to download/check for downloads (default: 1 minute)
    * @param {Boolean} options.verbose If true, print out debug messages (default: false)
+   * @param {String} options.workingDirectory The directory to download files to (default: './downloads')
    */
   constructor(options={}) {
     // Internal state
