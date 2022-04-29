@@ -1,5 +1,6 @@
 const fetch = require('node-fetch')
 const fs = require('fs')
+const path = require('path')
 const extract = require('extract-zip')
 
 /**
@@ -17,7 +18,7 @@ class DownloadManager {
    * @param {Boolean} options.disableUnzip If true, don't unzip the downloaded zip file (default: false)
    * @param {Array} options.downloadManifest The list of files to download (default: [])
    * @param {Number} options.downloadManifest.delayInSeconds The delay in seconds to wait before starting the download (default: 1 minute)
-   * @param {String} options.downloadManifest.filePath The path to save the file to
+   * @param {String} options.downloadManifest.fileName The name of the file to download (the file path will be the download directory + this name) (default: The file name from the url)
    * @param {String} options.downloadManifest.url The url to download the file from
    * @param {String} options.downloadManifest.unzipTo The path to unzip the downloaded file to
    * @param {Number} options.interval The interval in milliseconds at which to download/check for downloads (default: 1 minute)
@@ -36,12 +37,13 @@ class DownloadManager {
     this.disableUnzip = options?.disableUnzip ?? false;
     this.downloadManifest = options?.downloadManifest ? options.downloadManifest.map(manifest => ({
         delayInSeconds: manifest.delayInSeconds ?? 60,
-        filePath: manifest.filePath,
+        fileName: manifest.fileName,
         url: manifest.url,
         unzipTo: manifest.unzipTo
       })) : [];
     this.interval = options?.interval ?? 60000;
     this.verbose = options?.verbose ?? false;
+    this.workingDirectory = path.resolve(options?.workingDirectory ?? './downloads')
   }
 
   init() {
@@ -51,9 +53,12 @@ class DownloadManager {
     this._downloadInterval = setInterval(() => {
       this._logger('Checking for downloads')
       this._checkLocalCache()?.forEach(async (manifest) => {
-        this._logger(`Checking for ${manifest.filePath}`)
+        if (!manifest.fileName) {
+          manifest.fileName = path.basename(manifest.url)
+        }
+        this._logger(`Checking for ${manifest.fileName}`)
         try {
-          const file = await this.start(manifest.filePath, {
+          const file = await this.start(path.resolve(this.workingDirectory, manifest.fileName), {
             url: manifest.url
           }, {
             delayInSeconds: manifest.delayInSeconds
@@ -73,7 +78,7 @@ class DownloadManager {
             });
           }
         } catch (err) {
-          this._logger(`Error downloading ${manifest.filePath}: ${err}`)
+          this._logger(`Error downloading ${manifest.fileName}: ${err}`)
         }
       });
     }, this.interval)
@@ -86,7 +91,7 @@ class DownloadManager {
   _checkLocalCache() {
     // Check the local cache for the files in the manifest
     const missingFiles = this.downloadManifest.filter(manifest => {
-      return !fs.existsSync(manifest.filePath)
+      return !fs.existsSync(path.resolve(this.workingDirectory, manifest.fileName))
     })
 
     return missingFiles
