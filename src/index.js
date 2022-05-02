@@ -64,19 +64,7 @@ class DownloadManager {
             delayInSeconds: manifest.delayInSeconds
           });
 
-          // If the file is a zip file, the manifest has unzipTo property and unzip is not disabled
-          // Unzip the file
-          const fileName = file.split('/').pop()
-          if (fileName.indexOf('.zip') > -1 && manifest.unzipTo && !this.disableUnzip) {
-            // Unzip the file to the directory
-            extract(file, {
-              dir: manifest.unzipTo
-            }, (err) => {
-              if (err) {
-                this._logger(`Error unzipping file: ${err}`)
-              }
-            });
-          }
+          this._handleDownloadedFile(file, manifest)
         } catch (err) {
           this._logger(`Error downloading ${manifest.fileName}: ${err}`)
         }
@@ -246,6 +234,27 @@ class DownloadManager {
   _logger(message) {
     if (this.verbose) {
       console.log(message)
+    }
+  }
+
+  /**
+   * Handle the downloaded file
+   * @param {String} filePath The path to the file
+   * @param {Object} manifest The manifest for the file
+   */
+  _handleDownloadedFile(filePath, manifest) {
+    // If the file is a zip file, the manifest has unzipTo property and unzip is not disabled
+    // Unzip the file
+    const fileName = filePath.split('/').pop()
+    if (fileName.indexOf('.zip') > -1 && manifest.unzipTo && !this.disableUnzip) {
+      // Unzip the file to the directory
+      extract(filePath, {
+        dir: manifest.unzipTo
+      }, (err) => {
+        if (err) {
+          this._logger(`Error unzipping file: ${err}`)
+        }
+      });
     }
   }
 }
