@@ -253,7 +253,23 @@ class DownloadManager {
       }, (err) => {
         if (err) {
           this._logger(`Error unzipping file: ${err}`)
+          return
         }
+
+        // Add JSON info file to the game directory
+        fs.readdir(manifest.unzipTo, (err, files) => {
+          if (err) {
+            this._logger(`Error reading directory: ${err}`)
+            return
+          }
+          fs.writeFileSync(
+            path.resolve(manifest.unzipTo, 'info.json'),
+            JSON.stringify({
+              requiredFiles: files.filter(file => !(/(^|\/)\.[^\/\.]/g).test(file)), // Remove hidden files
+              downloadedAt: Date.now()
+            }),
+          );
+        })
       });
     }
   }
