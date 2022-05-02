@@ -91,7 +91,33 @@ class DownloadManager {
   _checkLocalCache() {
     // Check the local cache for the files in the manifest
     const missingFiles = this.downloadManifest.filter(manifest => {
-      return !fs.existsSync(path.resolve(this.workingDirectory, manifest.fileName))
+      const path = path.resolve(this.workingDirectory, manifest.fileName)
+
+      // If the file is a zip file, check if the unzip directory exists
+      if (manifest.fileName.indexOf('.zip') > -1 && manifest.unzipTo && !this.disableUnzip) {
+        const unzipPath = path.resolve(this.workingDirectory, manifest.unzipTo)
+        if (!fs.existsSync(unzipPath)) return true
+        const stat = fs.statSync(unzipPath)
+        if (!stat.isDirectory()) return true
+        const files = fs.readdirSync(unzipPath)
+        if (
+          files.length === 0 ||
+          !files.find((file) => file === 'info.json')
+        ) {
+          return true
+        }
+
+        // Check that the directory contains all the required files specified in the info.json
+        const info = JSON.parse(fs.readFileSync(path.join(manifest.unzipTo, 'info.json')));
+        if (!info.requiredFiles.every(file => files.includes(file))) {
+          return true
+        }
+      }
+      // Check if the file exists
+      if (!fs.existsSync(path)) return true
+
+      // File is missing
+      return false
     })
 
     return missingFiles
