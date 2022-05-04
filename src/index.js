@@ -9,6 +9,21 @@ const extract = require('extract-zip')
  */
 class DownloadManager {
   /**
+   * Asynchronous function for retrieving the download manifest
+   * @callback getManifest
+   * @returns {Promise<Array>} The list of files to download (i.e. the manifest)
+   * @example
+   * const getManifest = async () => {
+   *  return [
+   *    {
+   *      url: 'https://www.example.com/file1.zip',
+   *      fileName: 'file1.zip',
+   *      unzipTo: './file1'
+   *    },
+   *  }
+   */
+
+  /**
    * Initialize the download manager
    * @constructor
    * @public
@@ -24,6 +39,7 @@ class DownloadManager {
    * @param {Number} options.interval The interval in milliseconds at which to download/check for downloads (default: 1 minute)
    * @param {Boolean} options.verbose If true, print out debug messages (default: false)
    * @param {String} options.workingDirectory The directory to download files to (default: './downloads')
+   * @param {getManifest} options.getManifest The function to get the download manifest. It will override the downloadManifest option on each interval.
    */
   constructor(options={}) {
     // Internal state
@@ -44,14 +60,27 @@ class DownloadManager {
     this.interval = options?.interval ?? 60000;
     this.verbose = options?.verbose ?? false;
     this.workingDirectory = path.resolve(options?.workingDirectory ?? './downloads')
+    this.getManifest = options?.getManifest
   }
 
   init() {
     // Initialize the download of the files in the manifest if they don't already exist in the download directory
     // Set interval to check for downloads every minute
     this._logger(`Initializing download manager\nDownload interval set to ${this.interval / 1000} seconds`)
-    this._downloadInterval = setInterval(() => {
+    this._downloadInterval = setInterval(async () => {
       this._logger('Checking for downloads')
+
+      // Retrieve the download manifest
+      if (this.getManifest) {
+        this._logger('Retrieving download manifest')
+        try {
+          this.downloadManifest = await this.getManifest()
+          this._logger('Download manifest retrieved')
+        } catch (error) {
+          this._logger(`Error getting download manifest: ${error}`)
+          return // Don't continue if there was an error getting the manifest
+        }
+      }
       this._checkLocalCache()?.forEach(async (manifest) => {
         if (!manifest.fileName) {
           manifest.fileName = path.basename(manifest.url)
