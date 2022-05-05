@@ -67,43 +67,13 @@ class DownloadManager {
     // Initialize the download of the files in the manifest if they don't already exist in the download directory
     // Set interval to check for downloads every minute
     this._logger(`Initializing download manager\nDownload interval set to ${this.interval / 1000} seconds`)
-    this._downloadInterval = setInterval(async () => {
-      this._logger('Checking for downloads')
-
-      // Retrieve the download manifest
-      if (this.getManifest) {
-        this._logger('Retrieving download manifest')
-        try {
-          this.downloadManifest = await this.getManifest()
-          this._logger('Download manifest retrieved')
-        } catch (error) {
-          this._logger(`Error getting download manifest: ${error}`)
-          return // Don't continue if there was an error getting the manifest
-        }
-      }
-      this._checkLocalCache()?.forEach(async (manifest) => {
-        if (!manifest.fileName) {
-          manifest.fileName = path.basename(manifest.url)
-        }
-        this._logger(`Checking for ${manifest.fileName}`)
-        try {
-          const file = await this.start(path.resolve(this.workingDirectory, manifest.fileName), {
-            url: manifest.url
-          }, {
-            delayInSeconds: manifest.delayInSeconds
-          });
-
-          this._handleDownloadedFile(file, manifest)
-        } catch (err) {
-          this._logger(`Error downloading ${manifest.fileName}: ${err}`)
-        }
-      });
-    }, this.interval)
+    this._downloadInterval = setInterval(this._handleIntervalHit.bind(this), this.interval)
   }
 
   /**
    * Check the local cache (file system) for the files in the manifest and return the files that don't exist
    * @returns {Array} The list of files that don't exist in the local cache
+   * @private
    */
   _checkLocalCache() {
     // Check the local cache for the files in the manifest
@@ -142,6 +112,51 @@ class DownloadManager {
     })
 
     return missingFiles
+  }
+
+  /**
+   * Initiate a download
+   * @param {Object} manifest The manifest to initiate the download for
+   * @private
+   */
+  async _initiateDownload(manifest) {
+    if (!manifest.fileName) {
+      manifest.fileName = path.basename(manifest.url)
+    }
+    this._logger(`Checking for ${manifest.fileName}`)
+    try {
+      const file = await this.start(path.resolve(this.workingDirectory, manifest.fileName), {
+        url: manifest.url
+      }, {
+        delayInSeconds: manifest.delayInSeconds
+      });
+
+      this._handleDownloadedFile(file, manifest)
+    } catch (err) {
+      this._logger(`Error downloading ${manifest.fileName}: ${err}`)
+    }
+  }
+
+  /**
+   * Handle an interval hit
+   * @private
+   */
+  async _handleIntervalHit() {
+    this._logger('Checking for downloads')
+
+    // Retrieve the download manifest
+    if (this.getManifest) {
+      this._logger('Retrieving download manifest')
+      try {
+        this.downloadManifest = await this.getManifest()
+        this._logger('Download manifest retrieved')
+      } catch (error) {
+        this._logger(`Error getting download manifest: ${error}`)
+        return // Don't continue if there was an error getting the manifest
+      }
+    }
+
+    this._checkLocalCache()?.forEach(this._initiateDownload.bind(this));
   }
 
 
