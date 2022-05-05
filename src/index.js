@@ -129,6 +129,39 @@ class DownloadManager {
   }
 
   /**
+   * Purge the local cache of files that are no longer needed
+   * @private
+   */
+  _purgeLocalCache() {
+    // Check the local cache and remove any files that are not in the manifest
+    fs.readdirSync(this.workingDirectory).forEach((file) => {
+      const shouldKeep = this.downloadManifest.find(
+        (manifest) => manifest.fileName === file || manifest.unzipTo === file
+      );
+      // Check if should be kept
+      if (!shouldKeep) {
+        // If the file is a directory, delete the directory
+        fs.stat(path.resolve(this.workingDirectory, file), (err, stat) => {
+          if (err) {
+            this._logger(`Error checking local cache: ${err}`);
+            return;
+          }
+          if (stat.isDirectory()) {
+            fs.rmdir(path.resolve(this.workingDirectory, file), (err) => {
+              if (err)
+                this._logger(`Error deleting directory (${file}): ${err}`);
+            });
+          } else {
+            fs.unlink(path.resolve(this.workingDirectory, file), (err) => {
+              if (err) this._logger(`Error deleting file (${file}): ${err}`);
+            });
+          }
+        });
+      }
+    });
+  }
+
+  /**
    * Initiate a download
    * @param {Object} manifest The manifest to initiate the download for
    * @private
@@ -175,6 +208,7 @@ class DownloadManager {
     }
 
     this._checkLocalCache()?.forEach(this._initiateDownload.bind(this));
+    this._purgeLocalCache();
   }
 
   /**
