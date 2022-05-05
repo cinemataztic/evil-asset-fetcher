@@ -124,12 +124,16 @@ class DownloadManager {
           return true
         }
 
-        // Check that the directory contains all the required files specified in the info.json
-        const info = JSON.parse(fs.readFileSync(path.join(manifest.unzipTo, 'info.json')));
-        if (!info.requiredFiles.every(file => files.includes(file))) {
-          return true
+        // Check if the unzip path is a directory
+        if (!fs.statSync(unzipPath).isDirectory()) {
+          // Check that the directory contains all the required files specified in the info.json
+          const info = JSON.parse(fs.readFileSync(path.join(manifest.unzipTo, 'info.json')));
+          if (!info.requiredFiles.every(file => files.includes(file))) {
+            return true
+          }
         }
       }
+
       // Check if the file exists
       if (!fs.existsSync(path)) return true
 
@@ -285,20 +289,23 @@ class DownloadManager {
           return
         }
 
-        // Add JSON info file to the game directory
-        fs.readdir(manifest.unzipTo, (err, files) => {
-          if (err) {
-            this._logger(`Error reading directory: ${err}`)
-            return
-          }
-          fs.writeFileSync(
-            path.resolve(manifest.unzipTo, 'info.json'),
-            JSON.stringify({
-              requiredFiles: files.filter(file => !(/(^|\/)\.[^\/\.]/g).test(file)), // Remove hidden files
-              downloadedAt: Date.now()
-            }),
-          );
-        })
+        // Check if the unzip path is a directory
+        if (!fs.statSync(manifest.unzipTo).isDirectory()) {
+          // Add JSON info file to the game directory
+          fs.readdir(manifest.unzipTo, (err, files) => {
+            if (err) {
+              this._logger(`Error reading directory: ${err}`)
+              return
+            }
+            fs.writeFileSync(
+              path.resolve(manifest.unzipTo, 'info.json'),
+              JSON.stringify({
+                requiredFiles: files.filter(file => !(/(^|\/)\.[^\/\.]/g).test(file)), // Remove hidden files
+                downloadedAt: Date.now()
+              }),
+            );
+          })
+        }
       });
     }
   }
