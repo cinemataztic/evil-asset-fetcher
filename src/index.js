@@ -1,11 +1,11 @@
-const fetch = require('node-fetch')
-const fs = require('fs')
-const path = require('path')
-const extract = require('extract-zip')
+const fetch = require("node-fetch");
+const fs = require("fs");
+const path = require("path");
+const extract = require("extract-zip");
 
 /**
  * Download a file from a url
- * 
+ *
  */
 class DownloadManager {
   /**
@@ -41,7 +41,7 @@ class DownloadManager {
    * @param {String} options.workingDirectory The directory to download files to (default: './downloads')
    * @param {getManifest} options.getManifest The function to get the download manifest. It will override the downloadManifest option on each interval.
    */
-  constructor(options={}) {
+  constructor(options = {}) {
     // Internal state
     this.currentDownloads = {};
     this.scheduledDownloads = {};
@@ -51,23 +51,34 @@ class DownloadManager {
     this.abandonedTimeout = options?.abandonedTimeout ?? 1800000;
     this.defaultDelayInSeconds = options?.defaultDelayInSeconds ?? 0;
     this.disableUnzip = options?.disableUnzip ?? false;
-    this.downloadManifest = options?.downloadManifest ? options.downloadManifest.map(manifest => ({
-        delayInSeconds: manifest.delayInSeconds ?? 60,
-        fileName: manifest.fileName,
-        url: manifest.url,
-        unzipTo: manifest.unzipTo
-      })) : [];
+    this.downloadManifest = options?.downloadManifest
+      ? options.downloadManifest.map((manifest) => ({
+          delayInSeconds: manifest.delayInSeconds ?? 60,
+          fileName: manifest.fileName,
+          url: manifest.url,
+          unzipTo: manifest.unzipTo,
+        }))
+      : [];
     this.interval = options?.interval ?? 60000;
     this.verbose = options?.verbose ?? false;
-    this.workingDirectory = path.resolve(options?.workingDirectory ?? './downloads')
-    this.getManifest = options?.getManifest
+    this.workingDirectory = path.resolve(
+      options?.workingDirectory ?? "./downloads"
+    );
+    this.getManifest = options?.getManifest;
   }
 
   init() {
     // Initialize the download of the files in the manifest if they don't already exist in the download directory
     // Set interval to check for downloads every minute
-    this._logger(`Initializing download manager\nDownload interval set to ${this.interval / 1000} seconds`)
-    this._downloadInterval = setInterval(this._handleIntervalHit.bind(this), this.interval)
+    this._logger(
+      `Initializing download manager\nDownload interval set to ${
+        this.interval / 1000
+      } seconds`
+    );
+    this._downloadInterval = setInterval(
+      this._handleIntervalHit.bind(this),
+      this.interval
+    );
   }
 
   /**
@@ -77,41 +88,44 @@ class DownloadManager {
    */
   _checkLocalCache() {
     // Check the local cache for the files in the manifest
-    const missingFiles = this.downloadManifest.filter(manifest => {
-      const path = path.resolve(this.workingDirectory, manifest.fileName)
+    const missingFiles = this.downloadManifest.filter((manifest) => {
+      const path = path.resolve(this.workingDirectory, manifest.fileName);
 
       // If the file is a zip file, check if the unzip directory exists
-      if (manifest.fileName.indexOf('.zip') > -1 && manifest.unzipTo && !this.disableUnzip) {
-        const unzipPath = path.resolve(this.workingDirectory, manifest.unzipTo)
-        if (!fs.existsSync(unzipPath)) return true
-        const stat = fs.statSync(unzipPath)
-        if (!stat.isDirectory()) return true
-        const files = fs.readdirSync(unzipPath)
-        if (
-          files.length === 0 ||
-          !files.find((file) => file === 'info.json')
-        ) {
-          return true
+      if (
+        manifest.fileName.indexOf(".zip") > -1 &&
+        manifest.unzipTo &&
+        !this.disableUnzip
+      ) {
+        const unzipPath = path.resolve(this.workingDirectory, manifest.unzipTo);
+        if (!fs.existsSync(unzipPath)) return true;
+        const stat = fs.statSync(unzipPath);
+        if (!stat.isDirectory()) return true;
+        const files = fs.readdirSync(unzipPath);
+        if (files.length === 0 || !files.find((file) => file === "info.json")) {
+          return true;
         }
 
         // Check if the unzip path is a directory
         if (!fs.statSync(unzipPath).isDirectory()) {
           // Check that the directory contains all the required files specified in the info.json
-          const info = JSON.parse(fs.readFileSync(path.join(manifest.unzipTo, 'info.json')));
-          if (!info.requiredFiles.every(file => files.includes(file))) {
-            return true
+          const info = JSON.parse(
+            fs.readFileSync(path.join(manifest.unzipTo, "info.json"))
+          );
+          if (!info.requiredFiles.every((file) => files.includes(file))) {
+            return true;
           }
         }
       }
 
       // Check if the file exists
-      if (!fs.existsSync(path)) return true
+      if (!fs.existsSync(path)) return true;
 
       // File is missing
-      return false
-    })
+      return false;
+    });
 
-    return missingFiles
+    return missingFiles;
   }
 
   /**
@@ -121,19 +135,23 @@ class DownloadManager {
    */
   async _initiateDownload(manifest) {
     if (!manifest.fileName) {
-      manifest.fileName = path.basename(manifest.url)
+      manifest.fileName = path.basename(manifest.url);
     }
-    this._logger(`Checking for ${manifest.fileName}`)
+    this._logger(`Checking for ${manifest.fileName}`);
     try {
-      const file = await this.start(path.resolve(this.workingDirectory, manifest.fileName), {
-        url: manifest.url
-      }, {
-        delayInSeconds: manifest.delayInSeconds
-      });
+      const file = await this.start(
+        path.resolve(this.workingDirectory, manifest.fileName),
+        {
+          url: manifest.url,
+        },
+        {
+          delayInSeconds: manifest.delayInSeconds,
+        }
+      );
 
-      this._handleDownloadedFile(file, manifest)
+      this._handleDownloadedFile(file, manifest);
     } catch (err) {
-      this._logger(`Error downloading ${manifest.fileName}: ${err}`)
+      this._logger(`Error downloading ${manifest.fileName}: ${err}`);
     }
   }
 
@@ -142,23 +160,22 @@ class DownloadManager {
    * @private
    */
   async _handleIntervalHit() {
-    this._logger('Checking for downloads')
+    this._logger("Checking for downloads");
 
     // Retrieve the download manifest
     if (this.getManifest) {
-      this._logger('Retrieving download manifest')
+      this._logger("Retrieving download manifest");
       try {
-        this.downloadManifest = await this.getManifest()
-        this._logger('Download manifest retrieved')
+        this.downloadManifest = await this.getManifest();
+        this._logger("Download manifest retrieved");
       } catch (error) {
-        this._logger(`Error getting download manifest: ${error}`)
-        return // Don't continue if there was an error getting the manifest
+        this._logger(`Error getting download manifest: ${error}`);
+        return; // Don't continue if there was an error getting the manifest
       }
     }
 
     this._checkLocalCache()?.forEach(this._initiateDownload.bind(this));
   }
-
 
   /**
    * Start a file download
@@ -170,71 +187,76 @@ class DownloadManager {
    */
   start(filePath, requestConfig, options) {
     if (options && options.delayInSeconds) {
-      return this._delayedStart(filePath, requestConfig, options)
+      return this._delayedStart(filePath, requestConfig, options);
     }
 
     // Clear scheduled download if it exists
     if (this.currentDownloads[filePath]) {
-      clearTimeout(this.currentDownloads[filePath].timeout)
+      clearTimeout(this.currentDownloads[filePath].timeout);
     }
 
     return new Promise(async (resolve, reject) => {
-
       // Const get download from the current downloads
-      const download = this.currentDownloads[filePath]
+      const download = this.currentDownloads[filePath];
 
       // Check that download is not older than 30 minutes
-      if (download && download.startTime && (Date.now() - download.startTime) > this.abandonedTimeout) {
+      if (
+        download &&
+        download.startTime &&
+        Date.now() - download.startTime > this.abandonedTimeout
+      ) {
         // Delete the download
-        delete this.currentDownloads[filePath]
+        delete this.currentDownloads[filePath];
         // Remove temporary file
         if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath)
+          fs.unlinkSync(filePath);
         }
         // Reject the promise
-        reject(`Download is older than ${this.abandonedTimeout / 1000} seconds`)
+        reject(
+          `Download is older than ${this.abandonedTimeout / 1000} seconds`
+        );
         return;
       }
 
       // Check if we're already downloading this file)
       if (download) {
-        reject('Duplicate download')
+        reject("Duplicate download");
         return;
       }
 
       // Check if the file already exists in the download directory
       if (fs.existsSync(filePath)) {
         // Delete the file so we can initialize a fresh download
-        fs.unlinkSync(filePath)
+        fs.unlinkSync(filePath);
       }
 
       // Create the download
       if (options && options.onNewDownload) {
-        options.onNewDownload()
+        options.onNewDownload();
       }
 
       // Insert the download into the current downloads
       this.currentDownloads[filePath] = {
-        startTime: Date.now()
-      }
+        startTime: Date.now(),
+      };
       // Start a new download
-      const file = fs.createWriteStream(filePath)
-      const res = await fetch(requestConfig.url, requestConfig)
-      res.body.pipe(file)
-      res.body.on('error', (err) => {
+      const file = fs.createWriteStream(filePath);
+      const res = await fetch(requestConfig.url, requestConfig);
+      res.body.pipe(file);
+      res.body.on("error", (err) => {
         // Remove the file from the current downloads
-        delete this.currentDownloads[filePath]
+        delete this.currentDownloads[filePath];
         // Remove the file from the filesystem
         fs.unlink(filePath, () => {
-          reject(err)
-        })
-      })
-      file.on('finish', () => {
+          reject(err);
+        });
+      });
+      file.on("finish", () => {
         // Remove the file from the current downloads
-        delete this.currentDownloads[filePath]
-        resolve(filePath)
-      })
-    })
+        delete this.currentDownloads[filePath];
+        resolve(filePath);
+      });
+    });
   }
 
   /**
@@ -248,25 +270,33 @@ class DownloadManager {
   _delayedStart(filePath, requestConfig, options) {
     return new Promise((resolve, reject) => {
       if (this.scheduledDownloads[filePath]) {
-        reject(`Duplicate download: starting in ${(this.scheduledDownloads[filePath].startTime - Date.now())/1000} seconds`)
+        reject(
+          `Duplicate download: starting in ${
+            (this.scheduledDownloads[filePath].startTime - Date.now()) / 1000
+          } seconds`
+        );
         return;
       }
       if (this.currentDownloads[filePath]) {
-        reject(`Duplicate download: cannot schedule a download while another is in progress`)
+        reject(
+          `Duplicate download: cannot schedule a download while another is in progress`
+        );
         return;
       }
-      const delay = options.delayInSeconds ?? this.defaultDelayInSeconds
+      const delay = options.delayInSeconds ?? this.defaultDelayInSeconds;
       const timeout = setTimeout(() => {
-        delete options.delayInSeconds
-        delete this.scheduledDownloads[filePath]
-        this.start(filePath, requestConfig, options).then(resolve).catch(reject)
-      }, delay * 1000)
+        delete options.delayInSeconds;
+        delete this.scheduledDownloads[filePath];
+        this.start(filePath, requestConfig, options)
+          .then(resolve)
+          .catch(reject);
+      }, delay * 1000);
 
       this.scheduledDownloads[filePath] = {
-        startTime: Date.now() + (delay * 1000),
-        timeout
-      }
-    })
+        startTime: Date.now() + delay * 1000,
+        timeout,
+      };
+    });
   }
 
   // HELPERS
@@ -281,7 +311,7 @@ class DownloadManager {
    */
   _logger(message) {
     if (this.verbose) {
-      console.log(message)
+      console.log(message);
     }
   }
 
@@ -293,37 +323,47 @@ class DownloadManager {
   _handleDownloadedFile(filePath, manifest) {
     // If the file is a zip file, the manifest has unzipTo property and unzip is not disabled
     // Unzip the file
-    const fileName = filePath.split('/').pop()
-    if (fileName.indexOf('.zip') > -1 && manifest.unzipTo && !this.disableUnzip) {
+    const fileName = filePath.split("/").pop();
+    if (
+      fileName.indexOf(".zip") > -1 &&
+      manifest.unzipTo &&
+      !this.disableUnzip
+    ) {
       // Unzip the file to the directory
-      extract(filePath, {
-        dir: manifest.unzipTo
-      }, (err) => {
-        if (err) {
-          this._logger(`Error unzipping file: ${err}`)
-          return
-        }
+      extract(
+        filePath,
+        {
+          dir: manifest.unzipTo,
+        },
+        (err) => {
+          if (err) {
+            this._logger(`Error unzipping file: ${err}`);
+            return;
+          }
 
-        // Check if the unzip path is a directory
-        if (!fs.statSync(manifest.unzipTo).isDirectory()) {
-          // Add JSON info file to the game directory
-          fs.readdir(manifest.unzipTo, (err, files) => {
-            if (err) {
-              this._logger(`Error reading directory: ${err}`)
-              return
-            }
-            fs.writeFileSync(
-              path.resolve(manifest.unzipTo, 'info.json'),
-              JSON.stringify({
-                requiredFiles: files.filter(file => !(/(^|\/)\.[^\/\.]/g).test(file)), // Remove hidden files
-                downloadedAt: Date.now()
-              }),
-            );
-          })
+          // Check if the unzip path is a directory
+          if (!fs.statSync(manifest.unzipTo).isDirectory()) {
+            // Add JSON info file to the game directory
+            fs.readdir(manifest.unzipTo, (err, files) => {
+              if (err) {
+                this._logger(`Error reading directory: ${err}`);
+                return;
+              }
+              fs.writeFileSync(
+                path.resolve(manifest.unzipTo, "info.json"),
+                JSON.stringify({
+                  requiredFiles: files.filter(
+                    (file) => !/(^|\/)\.[^\/\.]/g.test(file)
+                  ), // Remove hidden files
+                  downloadedAt: Date.now(),
+                })
+              );
+            });
+          }
         }
-      });
+      );
     }
   }
 }
 
-module.exports = DownloadManager
+module.exports = DownloadManager;
