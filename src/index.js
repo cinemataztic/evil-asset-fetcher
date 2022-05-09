@@ -40,6 +40,7 @@ class DownloadManager {
    * @param {Boolean} options.verbose If true, print out debug messages (default: false)
    * @param {String} options.workingDirectory The directory to download files to (default: './downloads')
    * @param {getManifest} options.getManifest The function to get the download manifest. It will override the downloadManifest option on each interval.
+   * @param {boolean} options.disableImmediateDownload If true, don't download files immediately on init (default: false)
    */
   constructor(options = {}) {
     // Internal state
@@ -65,6 +66,7 @@ class DownloadManager {
       options?.workingDirectory ?? "./downloads"
     );
     this.getManifest = options?.getManifest;
+    this.disableImmediateDownload = options?.disableImmediateDownload ?? false;
   }
 
   init() {
@@ -79,6 +81,9 @@ class DownloadManager {
       this._handleIntervalHit.bind(this),
       this.interval
     );
+    if (!this.disableImmediateDownload) {
+      this._handleIntervalHit();
+    }
   }
 
   /**
@@ -89,7 +94,7 @@ class DownloadManager {
   _checkLocalCache() {
     // Check the local cache for the files in the manifest
     const missingFiles = this.downloadManifest.filter((manifest) => {
-      const path = path.resolve(this.workingDirectory, manifest.fileName);
+      const filePath = path.resolve(this.workingDirectory, manifest.fileName);
 
       // If the file is a zip file, check if the unzip directory exists
       if (
@@ -119,7 +124,7 @@ class DownloadManager {
       }
 
       // Check if the file exists
-      if (!fs.existsSync(path)) return true;
+      if (!fs.existsSync(filePath)) return true;
 
       // File is missing
       return false;
