@@ -2,6 +2,7 @@ const fetch = require("node-fetch");
 const fs = require("fs");
 const path = require("path");
 const extract = require("extract-zip");
+const rimraf = require("rimraf");
 
 /**
  * Download a file from a url
@@ -153,13 +154,17 @@ class DownloadManager {
             return;
           }
           if (stat.isDirectory()) {
-            fs.rmdir(path.resolve(this.workingDirectory, file), (err) => {
-              if (err)
-                this._logger(`Error deleting directory (${file}): ${err}`);
+            rimraf(path.resolve(this.workingDirectory, file), (err) => {
+              if (err) {
+                this._logger(`Error purging local cache: ${err}`);
+                return;
+              }
+              this._logger(`Purged ${file}`);
             });
           } else {
             fs.unlink(path.resolve(this.workingDirectory, file), (err) => {
-              if (err) this._logger(`Error deleting file (${file}): ${err}`);
+              if (err) return this._logger(`Error deleting file (${file}): ${err}`);
+              this._logger(`Deleted ${file}`);
             });
           }
         });
