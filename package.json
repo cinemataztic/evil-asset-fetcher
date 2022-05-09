@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "extract-zip": "^2.0.1",
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^2.6.7",
+    "rimraf": "^3.0.2"
   }
 }
