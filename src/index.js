@@ -36,6 +36,7 @@ class DownloadManager {
    * @param {String} options.downloadManifest.fileName The name of the file to download (the file path will be the download directory + this name) (default: The file name from the url)
    * @param {String} options.downloadManifest.url The url to download the file from
    * @param {String} options.downloadManifest.unzipTo The path to unzip the downloaded file to
+   * @param {Object} options.downloadManifest.requestConfig The request configuration to use when downloading the file (i.e. the fetch options)
    * @param {Number} options.interval The interval in milliseconds at which to download/check for downloads (default: 1 minute)
    * @param {Boolean} options.verbose If true, print out debug messages (default: false)
    * @param {String} options.workingDirectory The directory to download files to (default: './downloads')
@@ -181,11 +182,14 @@ class DownloadManager {
         path.resolve(this.workingDirectory, manifest.fileName),
         {
           url: manifest.url,
+          ...(manifest.requestConfig ?? {}),
         },
         {
           delayInSeconds: manifest.delayInSeconds,
         }
       );
+
+      this._logger(`Downloaded file ${file}`);
 
       this._handleDownloadedFile(file, manifest);
     } catch (err) {
@@ -372,7 +376,7 @@ class DownloadManager {
       extract(
         filePath,
         {
-          dir: manifest.unzipTo,
+          dir: path.resolve(this.workingDirectory, manifest.unzipTo),
         },
         (err) => {
           if (err) {
