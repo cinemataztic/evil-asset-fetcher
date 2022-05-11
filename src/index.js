@@ -88,6 +88,10 @@ class DownloadManager {
     this.getDownloadDelay = options?.getDownloadDelay;
   }
 
+  /**
+   * Initialize the download manager and start the interval
+   * @public
+   */
   init() {
     // Initialize the download of the files in the manifest if they don't already exist in the download directory
     // Set interval to check for downloads every minute
@@ -428,6 +432,7 @@ class DownloadManager {
    * Handle the downloaded file
    * @param {String} filePath The path to the file
    * @param {Object} manifest The manifest for the file
+   * @private
    */
   async _handleDownloadedFile(filePath, manifest) {
     // If the file is a zip file, the manifest has unzipTo property and unzip is not disabled
