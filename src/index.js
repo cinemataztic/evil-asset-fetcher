@@ -474,7 +474,11 @@ class DownloadManager {
       }
 
       // Delete the zip file after extraction
-      fs.unlinkSync(filePath);
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          this._logger(`Error deleting zip file: ${err}`);
+        }
+      })
     }
   }
 }
