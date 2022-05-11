@@ -123,12 +123,11 @@ class DownloadManager {
             return true;
           }
         }
+      } else if (!fs.existsSync(filePath)) { // Check if the file exists
+        return true;
       }
 
-      // Check if the file exists
-      if (!fs.existsSync(filePath)) return true;
-
-      // File is missing
+      // File exists
       return false;
     });
 
