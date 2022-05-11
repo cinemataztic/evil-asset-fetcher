@@ -25,12 +25,25 @@ class DownloadManager {
    */
 
   /**
+   * Function for calculating the how much delay to assign a given download
+   * @callback getDownloadDelay
+   * @param {Number} retryCount The number of times the download has been retried
+   * @returns {Number} The delay in seconds to wait before starting the download
+   * @example
+   * const getDownloadDelay = (retryCount) => {
+   *    return retryCount * 5;
+   * }
+   */
+
+  /**
    * Initialize the download manager
    * @constructor
    * @public
    * @param {Object} options The download manager options
    * @param {Number} options.abandonedTimeout The time in milliseconds to wait before abandoning a download (default: 30 minutes)
    * @param {Number} options.defaultDelayInSeconds The default delay in seconds to wait before starting a download (default: 0). This is used when a download is scheduled but the delay is not specified in the options object.
+   * @param {Number} options.defaultRetryLimit The default number of times to retry a download before abandoning it (default: 5)
+   * @param {getDownloadDelay} options.getDownloadDelay The function to use to calculate the delay to assign a download (default: null)
    * @param {Boolean} options.disableUnzip If true, don't unzip the downloaded zip file (default: false)
    * @param {Array} options.downloadManifest The list of files to download (default: [])
    * @param {Number} options.downloadManifest.delayInSeconds The delay in seconds to wait before starting the download (default: 1 minute)
@@ -38,6 +51,7 @@ class DownloadManager {
    * @param {String} options.downloadManifest.url The url to download the file from
    * @param {String} options.downloadManifest.unzipTo The path to unzip the downloaded file to
    * @param {Object} options.downloadManifest.requestConfig The request configuration to use when downloading the file (i.e. the fetch options)
+   * @param {Number} options.downloadManifest.retryLimit The number of times to retry a download before abandoning it (overrides the defaultRetryLimit option)
    * @param {Number} options.interval The interval in milliseconds at which to download/check for downloads (default: 1 minute)
    * @param {Boolean} options.verbose If true, print out debug messages (default: false)
    * @param {String} options.workingDirectory The directory to download files to (default: './downloads')
@@ -48,6 +62,7 @@ class DownloadManager {
     // Internal state
     this.currentDownloads = {};
     this.scheduledDownloads = {};
+    this.downloadLog = {};
     this._downloadInterval;
 
     // Options
@@ -69,6 +84,8 @@ class DownloadManager {
     );
     this.getManifest = options?.getManifest;
     this.disableImmediateDownload = options?.disableImmediateDownload ?? false;
+    this.defaultRetryLimit = options?.defaultRetryLimit ?? 5;
+    this.getDownloadDelay = options?.getDownloadDelay;
   }
 
   init() {
@@ -180,24 +197,63 @@ class DownloadManager {
     if (!manifest.fileName) {
       manifest.fileName = path.basename(manifest.url);
     }
-    this._logger(`Checking for ${manifest.fileName}`);
+
+    const filePath = path.resolve(this.workingDirectory, manifest.fileName);
+
+    if (!this.downloadLog[filePath]) {
+      this.downloadLog[filePath] = {
+        lastDownloadAttempt: null,
+        retries: 0,
+      };
+    }
+
+    const fileLog = this.downloadLog[filePath];
+
+    // Check if the retry limit has been reached
+    if (fileLog.retries > (manifest.retryLimit ?? this.defaultRetryLimit)) {
+      this._logger(
+        `Retry limit reached for ${manifest.fileName} (${fileLog.retries}/${manifest.retryLimit ?? this.defaultRetryLimit})`
+      );
+      return;
+    }
+
+    // Calculate the delay before the next download
+    let delayInSeconds = manifest.delayInSeconds ?? this.defaultDelayInSeconds;
+    if (this.getDownloadDelay) {
+      delayInSeconds = this.getDownloadDelay(fileLog.retries);
+    }
+
+    this._logger(`Starting download for ${manifest.fileName}. ${fileLog.retries ? `Retry ${fileLog.retries}/${manifest.retryLimit ?? this.defaultRetryLimit} with delay ${delayInSeconds} seconds` : ""}`);
     try {
       const file = await this.start(
-        path.resolve(this.workingDirectory, manifest.fileName),
+        filePath,
         {
           url: manifest.url,
           ...(manifest.requestConfig ?? {}),
         },
         {
-          delayInSeconds: manifest.delayInSeconds,
+          delayInSeconds
         }
       );
 
       this._logger(`Downloaded file ${file}`);
 
-      this._handleDownloadedFile(file, manifest);
+      // Handle the downloaded file
+      await this._handleDownloadedFile(file, manifest);
+
+      // Reset the download log for this file
+      if (this.downloadLog[filePath]) {
+        this.downloadLog[filePath] = {
+          ...this.downloadLog[filePath],
+          retries: 0,
+          downloadedAt: Date.now(),
+        }
+      }
     } catch (err) {
       this._logger(`Error downloading ${manifest.fileName}: ${err}`);
+
+      // Increment retry number in download log
+      fileLog.retries++;
     }
   }
 
@@ -286,6 +342,12 @@ class DownloadManager {
       this.currentDownloads[filePath] = {
         startTime: Date.now(),
       };
+
+      // Update the download attempt timestamp in the download log
+      if (this.downloadLog[filePath]) {
+        this.downloadLog[filePath].lastDownloadAttempt = Date.now();
+      }
+
       // Start a new download
       const file = fs.createWriteStream(filePath);
       const res = await fetch(requestConfig.url, requestConfig);
@@ -378,36 +440,32 @@ class DownloadManager {
     ) {
       const unzipToPath = path.resolve(this.workingDirectory, manifest.unzipTo)
 
-      try {
-        // Unzip the file to the directory
-        await extract(
-          filePath,
-          {
-            dir: unzipToPath,
-          }
-        );
-
-        // Check if the unzip path is a directory
-        if (fs.statSync(unzipToPath).isDirectory()) {
-          // Add JSON info file to the game directory
-          fs.readdir(unzipToPath, (err, files) => {
-            if (err) {
-              this._logger(`Error reading directory: ${err}`);
-              return;
-            }
-            fs.writeFileSync(
-              path.resolve(unzipToPath, "info.json"),
-              JSON.stringify({
-                requiredFiles: files.filter(
-                  (file) => !/(^|\/)\.[^\/\.]/g.test(file)
-                ), // Remove hidden files
-                downloadedAt: Date.now(),
-              })
-            );
-          });
+      // Unzip the file to the directory
+      await extract(
+        filePath,
+        {
+          dir: unzipToPath,
         }
-      } catch (err) {
-        this._logger(`Error unzipping file: ${err}`);
+      );
+
+      // Check if the unzip path is a directory
+      if (fs.statSync(unzipToPath).isDirectory()) {
+        // Add JSON info file to the game directory
+        fs.readdir(unzipToPath, (err, files) => {
+          if (err) {
+            this._logger(`Error reading directory: ${err}`);
+            return;
+          }
+          fs.writeFileSync(
+            path.resolve(unzipToPath, "info.json"),
+            JSON.stringify({
+              requiredFiles: files.filter(
+                (file) => !/(^|\/)\.[^\/\.]/g.test(file)
+              ), // Remove hidden files
+              downloadedAt: Date.now(),
+            })
+          );
+        });
       }
 
       // Delete the zip file after extraction
