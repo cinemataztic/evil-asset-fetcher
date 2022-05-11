@@ -368,7 +368,7 @@ class DownloadManager {
    * @param {String} filePath The path to the file
    * @param {Object} manifest The manifest for the file
    */
-  _handleDownloadedFile(filePath, manifest) {
+  async _handleDownloadedFile(filePath, manifest) {
     // If the file is a zip file, the manifest has unzipTo property and unzip is not disabled
     // Unzip the file
     const fileName = filePath.split("/").pop();
@@ -377,39 +377,42 @@ class DownloadManager {
       manifest.unzipTo &&
       !this.disableUnzip
     ) {
-      // Unzip the file to the directory
-      extract(
-        filePath,
-        {
-          dir: path.resolve(this.workingDirectory, manifest.unzipTo),
-        },
-        (err) => {
-          if (err) {
-            this._logger(`Error unzipping file: ${err}`);
-            return;
-          }
+      const unzipToPath = path.resolve(this.workingDirectory, manifest.unzipTo)
 
-          // Check if the unzip path is a directory
-          if (!fs.statSync(manifest.unzipTo).isDirectory()) {
-            // Add JSON info file to the game directory
-            fs.readdir(manifest.unzipTo, (err, files) => {
-              if (err) {
-                this._logger(`Error reading directory: ${err}`);
-                return;
-              }
-              fs.writeFileSync(
-                path.resolve(manifest.unzipTo, "info.json"),
-                JSON.stringify({
-                  requiredFiles: files.filter(
-                    (file) => !/(^|\/)\.[^\/\.]/g.test(file)
-                  ), // Remove hidden files
-                  downloadedAt: Date.now(),
-                })
-              );
-            });
+      try {
+        // Unzip the file to the directory
+        await extract(
+          filePath,
+          {
+            dir: unzipToPath,
           }
+        );
+
+        // Check if the unzip path is a directory
+        if (fs.statSync(unzipToPath).isDirectory()) {
+          // Add JSON info file to the game directory
+          fs.readdir(unzipToPath, (err, files) => {
+            if (err) {
+              this._logger(`Error reading directory: ${err}`);
+              return;
+            }
+            fs.writeFileSync(
+              path.resolve(unzipToPath, "info.json"),
+              JSON.stringify({
+                requiredFiles: files.filter(
+                  (file) => !/(^|\/)\.[^\/\.]/g.test(file)
+                ), // Remove hidden files
+                downloadedAt: Date.now(),
+              })
+            );
+          });
         }
-      );
+      } catch (err) {
+        this._logger(`Error unzipping file: ${err}`);
+      }
+
+      // Delete the zip file after extraction
+      fs.unlinkSync(filePath);
     }
   }
 }
