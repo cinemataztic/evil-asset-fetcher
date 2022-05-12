@@ -149,7 +149,8 @@ class DownloadManager {
             return true;
           }
         }
-      } else if (!fs.existsSync(filePath)) { // Check if the file exists
+      } else if (!fs.existsSync(filePath)) {
+        // Check if the file exists
         return true;
       }
 
@@ -188,7 +189,8 @@ class DownloadManager {
             });
           } else {
             fs.unlink(path.resolve(this.workingDirectory, file), (err) => {
-              if (err) return this._logger(`Error deleting file (${file}): ${err}`);
+              if (err)
+                return this._logger(`Error deleting file (${file}): ${err}`);
               this._logger(`Deleted ${file}`);
             });
           }
@@ -221,7 +223,9 @@ class DownloadManager {
     // Check if the retry limit has been reached
     if (fileLog.retries > (manifest.retryLimit ?? this.defaultRetryLimit)) {
       this._logger(
-        `Retry limit reached for ${manifest.fileName} (${fileLog.retries}/${manifest.retryLimit ?? this.defaultRetryLimit})`
+        `Retry limit reached for ${manifest.fileName} (${fileLog.retries}/${
+          manifest.retryLimit ?? this.defaultRetryLimit
+        })`
       );
       return;
     }
@@ -232,7 +236,15 @@ class DownloadManager {
       delayInSeconds = this.getDownloadDelay(fileLog.retries);
     }
 
-    this._logger(`Starting download for ${manifest.fileName}. ${fileLog.retries ? `Retry ${fileLog.retries}/${manifest.retryLimit ?? this.defaultRetryLimit} with delay ${delayInSeconds} seconds` : ""}`);
+    this._logger(
+      `Starting download for ${manifest.fileName}. ${
+        fileLog.retries
+          ? `Retry ${fileLog.retries}/${
+              manifest.retryLimit ?? this.defaultRetryLimit
+            } with delay ${delayInSeconds} seconds`
+          : ""
+      }`
+    );
     try {
       const file = await this.start(
         filePath,
@@ -241,7 +253,7 @@ class DownloadManager {
           ...(manifest.requestConfig ?? {}),
         },
         {
-          delayInSeconds
+          delayInSeconds,
         }
       );
 
@@ -256,7 +268,7 @@ class DownloadManager {
           ...this.downloadLog[filePath],
           retries: 0,
           downloadedAt: Date.now(),
-        }
+        };
       }
     } catch (err) {
       this._logger(`Error downloading ${manifest.fileName}: ${err}`);
@@ -451,15 +463,12 @@ class DownloadManager {
       manifest.unzipTo &&
       !this.disableUnzip
     ) {
-      const unzipToPath = path.resolve(this.workingDirectory, manifest.unzipTo)
+      const unzipToPath = path.resolve(this.workingDirectory, manifest.unzipTo);
 
       // Unzip the file to the directory
-      await extract(
-        filePath,
-        {
-          dir: unzipToPath,
-        }
-      );
+      await extract(filePath, {
+        dir: unzipToPath,
+      });
 
       // Check if the unzip path is a directory
       if (fs.statSync(unzipToPath).isDirectory()) {
@@ -486,7 +495,7 @@ class DownloadManager {
         if (err) {
           this._logger(`Error deleting zip file: ${err}`);
         }
-      })
+      });
     }
   }
 
@@ -496,13 +505,17 @@ class DownloadManager {
    */
   _createDirectories() {
     if (!fs.existsSync(this.workingDirectory)) {
-      fs.mkdir(this.workingDirectory, {
-        recursive: true,
-      }, (err) => {
-        if (err) {
-          this._logger(`Error creating working directory: ${err}`);
+      fs.mkdir(
+        this.workingDirectory,
+        {
+          recursive: true,
+        },
+        (err) => {
+          if (err) {
+            this._logger(`Error creating working directory: ${err}`);
+          }
         }
-      })
+      );
     }
   }
 }
