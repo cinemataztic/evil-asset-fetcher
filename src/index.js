@@ -100,6 +100,11 @@ class DownloadManager {
         this.interval / 1000
       } seconds`
     );
+
+    // Create the working directory
+    this._createDirectories();
+
+    // Start download interval
     this._downloadInterval = setInterval(
       this._handleIntervalHit.bind(this),
       this.interval
@@ -266,6 +271,9 @@ class DownloadManager {
    * @private
    */
   async _handleIntervalHit() {
+    // Create the working directory if it doesn't exist
+    this._createDirectories();
+
     this._logger("Checking for downloads");
 
     // Retrieve the download manifest
@@ -477,6 +485,22 @@ class DownloadManager {
       fs.unlink(filePath, (err) => {
         if (err) {
           this._logger(`Error deleting zip file: ${err}`);
+        }
+      })
+    }
+  }
+
+  /**
+   * Create directories in path for the working directory if they don't exist
+   * @private
+   */
+  _createDirectories() {
+    if (!fs.existsSync(this.workingDirectory)) {
+      fs.mkdir(this.workingDirectory, {
+        recursive: true,
+      }, (err) => {
+        if (err) {
+          this._logger(`Error creating working directory: ${err}`);
         }
       })
     }
