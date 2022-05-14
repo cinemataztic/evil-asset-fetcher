@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "./node_modules/.bin/babel src --out-dir dist"
+    "build": "./node_modules/.bin/babel src --out-dir dist",
+    "docs": "jsdoc -c ./jsdoc.json --readme README.md --destination docs"
   },
   "author": "",
   "license": "ISC",
@@ -13,7 +14,9 @@
     "@babel/cli": "^7.17.6",
     "@babel/core": "^7.17.9",
     "@babel/preset-env": "^7.16.11",
-    "babel-loader": "^8.2.5"
+    "babel-loader": "^8.2.5",
+    "better-docs": "^2.7.2",
+    "jsdoc": "^3.6.10"
   },
   "dependencies": {
     "extract-zip": "^2.0.1",
