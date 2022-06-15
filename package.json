@@ -1,7 +1,7 @@
 {
-  "name": "@cinemataztic/evil-download-manager",
+  "name": "@cinemataztic/download-manager",
   "version": "0.2.3",
-  "description": "Keeps track of downloaded assets according to a manifest",
+  "description": "Manifest-based download manager",
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -11,9 +11,9 @@
   "author": "Cinemataztic",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cinemataztic/evil-download-manager.git"
+    "url": "git+https://github.com/cinemataztic/download-manager.git"
   },
-  "homepage": "https://github.com/cinemataztic/evil-download-manager",
+  "homepage": "https://github.com/cinemataztic/download-manager",
   "keywords": [
     "download",
     "manager"
