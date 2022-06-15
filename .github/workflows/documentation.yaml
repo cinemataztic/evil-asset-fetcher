@@ -15,12 +15,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Build
+      - name: Setup
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
-      - run: npm run docs
+      - name: Install dependencies
+        run: npm i
+      - name: Build
+        run: npm run docs
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
