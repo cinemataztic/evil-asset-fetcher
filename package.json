@@ -1,6 +1,6 @@
 {
   "name": "@cinemataztic/download-manager",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Keeps track of downloaded assets according to a manifest",
   "main": "dist/index.js",
   "scripts": {
