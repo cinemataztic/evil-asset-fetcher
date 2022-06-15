@@ -8,7 +8,12 @@
     "build": "./node_modules/.bin/babel src --out-dir dist",
     "docs": "jsdoc -c ./jsdoc.json --readme README.md --destination docs"
   },
-  "author": "",
+  "author": "CinemaTaztic",
+  "repository": "https://github.com/cinemataztic/download-manager",
+  "keywords": [
+    "download",
+    "manager"
+  ],
   "license": "ISC",
   "devDependencies": {
     "@babel/cli": "^7.17.6",
