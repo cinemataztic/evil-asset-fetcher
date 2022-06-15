@@ -1,5 +1,5 @@
 {
-  "name": "@cinemataztic/download-manager",
+  "name": "@cinemataztic/evil-download-manager",
   "version": "0.2.3",
   "description": "Keeps track of downloaded assets according to a manifest",
   "main": "dist/index.js",
@@ -8,8 +8,8 @@
     "build": "./node_modules/.bin/babel src --out-dir dist",
     "docs": "jsdoc -c ./jsdoc.json --readme README.md --destination docs"
   },
-  "author": "CinemaTaztic",
-  "repository": "https://github.com/cinemataztic/download-manager",
+  "author": "Cinemataztic",
+  "repository": "https://github.com/cinemataztic/evil-download-manager",
   "keywords": [
     "download",
     "manager"
