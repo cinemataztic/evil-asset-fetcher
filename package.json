@@ -1,5 +1,5 @@
 {
-  "name": "@cinemataztic/download-manager",
+  "name": "@cinemataztic/evil-asset-fetcher",
   "version": "0.2.3",
   "description": "Manifest-based download manager",
   "main": "dist/index.js",
@@ -11,9 +11,9 @@
   "author": "Cinemataztic",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cinemataztic/download-manager.git"
+    "url": "git+https://github.com/cinemataztic/evil-asset-fetcher.git"
   },
-  "homepage": "https://github.com/cinemataztic/download-manager",
+  "homepage": "https://github.com/cinemataztic/evil-asset-fetcher",
   "keywords": [
     "download",
     "manager"
