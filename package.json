@@ -9,7 +9,11 @@
     "docs": "jsdoc -c ./jsdoc.json --readme README.md --destination docs"
   },
   "author": "Cinemataztic",
-  "repository": "https://github.com/cinemataztic/evil-download-manager",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cinemataztic/evil-download-manager.git"
+  },
+  "homepage": "https://github.com/cinemataztic/evil-download-manager",
   "keywords": [
     "download",
     "manager"
