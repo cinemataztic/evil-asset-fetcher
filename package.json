@@ -1,6 +1,6 @@
 {
   "name": "@cinemataztic/evil-asset-fetcher",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "Manifest-based download manager",
   "main": "dist/index.js",
   "scripts": {
