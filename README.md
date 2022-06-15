@@ -1,4 +1,4 @@
-# Download Manager
+# Evil Asset Fetcher
 
 This package can syncronize a manifest of files to the local files system. 
 
