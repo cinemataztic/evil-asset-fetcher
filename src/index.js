@@ -327,11 +327,7 @@ class DownloadManager {
       const download = this.currentDownloads[filePath];
 
       // Check that download is not older than 30 minutes
-      if (
-        download &&
-        download.startTime &&
-        Date.now() - download.startTime > this.abandonedTimeout
-      ) {
+      if (this._hasDownloadExpired(download)) {
         // Delete the download
         delete this.currentDownloads[filePath];
         // Remove temporary file
@@ -411,10 +407,20 @@ class DownloadManager {
         return;
       }
       if (this.currentDownloads[filePath]) {
-        reject(
-          `Duplicate download: cannot schedule a download while another is in progress`
-        );
-        return;
+        // Check if the download has expired
+        if (this._hasDownloadExpired(this.currentDownloads[filePath])) {
+          // Delete the download
+          delete this.currentDownloads[filePath];
+          // Remove temporary file
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        } else {
+          reject(
+            `Duplicate download: cannot schedule a download while another is in progress`
+          );
+          return;
+        }
       }
       const delay = options.delayInSeconds ?? this.defaultDelayInSeconds;
       const timeout = setTimeout(() => {
@@ -518,6 +524,20 @@ class DownloadManager {
       );
     }
   }
+}
+
+/**
+ * Check if a current download is expired
+ * @param {Object} download The download to check
+ * @returns {Boolean} True if the download is expired, false otherwise
+ * @private
+ */
+function _hasDownloadExpired(download) {
+  return (
+    download &&
+    download.startTime &&
+    Date.now() - download.startTime > this.abandonedTimeout
+  );
 }
 
 module.exports = DownloadManager;
