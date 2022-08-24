@@ -360,8 +360,12 @@ class DownloadManager {
     } catch (err) {
       this._logger(`Error downloading ${manifest.fileName}: ${err}`);
 
-      // Increment retry number in download log
-      fileLog.retries++;
+      const message = err.message ?? err;
+
+      // Increment retry number in download log if the download is not a duplicate
+      if (message.toLowerCase().indexOf("duplicate") === -1) {
+        fileLog.retries++;
+      }
     }
   }
 
@@ -414,11 +418,7 @@ class DownloadManager {
       const download = this.currentDownloads[filePath];
 
       // Check that download is not older than 30 minutes
-      if (
-        download &amp;&amp;
-        download.startTime &amp;&amp;
-        Date.now() - download.startTime > this.abandonedTimeout
-      ) {
+      if (this._hasDownloadExpired(download)) {
         // Delete the download
         delete this.currentDownloads[filePath];
         // Remove temporary file
@@ -462,6 +462,18 @@ class DownloadManager {
       // Start a new download
       const file = fs.createWriteStream(filePath);
       const res = await fetch(requestConfig.url, requestConfig);
+
+      if (!res.ok) {
+        // Remove the file from the current downloads
+        delete this.currentDownloads[filePath];
+        
+        // Remove the file from the filesystem
+        fs.unlink(filePath, () => {
+          reject(`Download request failed with status ${res.status}`);
+        });
+        return;
+      }
+
       res.body.pipe(file);
       res.body.on("error", (err) => {
         // Remove the file from the current downloads
@@ -498,10 +510,20 @@ class DownloadManager {
         return;
       }
       if (this.currentDownloads[filePath]) {
-        reject(
-          `Duplicate download: cannot schedule a download while another is in progress`
-        );
-        return;
+        // Check if the download has expired
+        if (this._hasDownloadExpired(this.currentDownloads[filePath])) {
+          // Delete the download
+          delete this.currentDownloads[filePath];
+          // Remove temporary file
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        } else {
+          reject(
+            `Duplicate download: cannot schedule a download while another is in progress`
+          );
+          return;
+        }
       }
       const delay = options.delayInSeconds ?? this.defaultDelayInSeconds;
       const timeout = setTimeout(() => {
@@ -604,6 +626,20 @@ class DownloadManager {
         }
       );
     }
+  }
+
+  /**
+   * Check if a current download is expired
+   * @param {Object} download The download to check
+   * @returns {Boolean} True if the download is expired, false otherwise
+   * @private
+   */
+  _hasDownloadExpired(download) {
+    return (
+      download &amp;&amp;
+      download.startTime &amp;&amp;
+      Date.now() - download.startTime > this.abandonedTimeout
+    );
   }
 }
 
