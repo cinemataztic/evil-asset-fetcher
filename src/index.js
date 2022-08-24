@@ -375,6 +375,18 @@ class DownloadManager {
       // Start a new download
       const file = fs.createWriteStream(filePath);
       const res = await fetch(requestConfig.url, requestConfig);
+
+      if (!res.ok) {
+        // Remove the file from the current downloads
+        delete this.currentDownloads[filePath];
+        
+        // Remove the file from the filesystem
+        fs.unlink(filePath, () => {
+          reject(`Download request failed with status ${res.status}`);
+        });
+        return;
+      }
+
       res.body.pipe(file);
       res.body.on("error", (err) => {
         // Remove the file from the current downloads
