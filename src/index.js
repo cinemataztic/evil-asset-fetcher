@@ -273,8 +273,12 @@ class DownloadManager {
     } catch (err) {
       this._logger(`Error downloading ${manifest.fileName}: ${err}`);
 
-      // Increment retry number in download log
-      fileLog.retries++;
+      const message = err.message ?? err;
+
+      // Increment retry number in download log if the download is not a duplicate
+      if (message.toLowerCase().indexOf("duplicate") === -1) {
+        fileLog.retries++;
+      }
     }
   }
 
