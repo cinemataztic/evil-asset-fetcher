@@ -524,20 +524,20 @@ class DownloadManager {
       );
     }
   }
-}
 
-/**
- * Check if a current download is expired
- * @param {Object} download The download to check
- * @returns {Boolean} True if the download is expired, false otherwise
- * @private
- */
-function _hasDownloadExpired(download) {
-  return (
-    download &&
-    download.startTime &&
-    Date.now() - download.startTime > this.abandonedTimeout
-  );
+  /**
+   * Check if a current download is expired
+   * @param {Object} download The download to check
+   * @returns {Boolean} True if the download is expired, false otherwise
+   * @private
+   */
+  _hasDownloadExpired(download) {
+    return (
+      download &&
+      download.startTime &&
+      Date.now() - download.startTime > this.abandonedTimeout
+    );
+  }
 }
 
 module.exports = DownloadManager;
