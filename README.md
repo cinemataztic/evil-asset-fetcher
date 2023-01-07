@@ -8,7 +8,7 @@ This is a sharable package that's been extracted from the initial implementation
 
 The package is available on [npm](https://www.npmjs.com/package/@cinemataztic/evil-asset-fetcher), and can be installed with:
 ```sh
-npm install evil-asset-fetcher
+npm i @cinemataztic/evil-asset-fetcher
 ```
 
 
