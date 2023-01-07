@@ -50,3 +50,8 @@ Many of our products running on the machines in the cinema need to download vari
 ## Documentation
 
 Documentation is available at https://cinemataztic.github.io/evil-asset-fetcher/
+
+
+## Build and deploy
+
+The package is built and distributed using a GitHub action. To build and deploy a new version, simply create a new release on GitHub. The action will automatically build and publish the package to npm.
