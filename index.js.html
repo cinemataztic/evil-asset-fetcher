@@ -267,13 +267,15 @@ class DownloadManager {
             return;
           }
           if (stat.isDirectory()) {
-            rimraf(path.resolve(this.workingDirectory, file), (err) => {
+            try {
+              rimraf.sync(path.resolve(this.workingDirectory, file));
+              this._logger(`Purged ${file}`);
+            } catch (error) {
               if (err) {
                 this._logger(`Error purging local cache: ${err}`);
                 return;
               }
-              this._logger(`Purged ${file}`);
-            });
+            }
           } else {
             fs.unlink(path.resolve(this.workingDirectory, file), (err) => {
               if (err)
@@ -466,7 +468,7 @@ class DownloadManager {
       if (!res.ok) {
         // Remove the file from the current downloads
         delete this.currentDownloads[filePath];
-        
+
         // Remove the file from the filesystem
         fs.unlink(filePath, () => {
           reject(`Download request failed with status ${res.status}`);
