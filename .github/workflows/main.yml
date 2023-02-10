@@ -1,0 +1,32 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build_on_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@master
+        with:
+          node-version: 14
+      - name: Set npm to CI mode
+        run: npm ci
+      - name: Install dependencies
+        run: npm install
+      - name: Compute GH short sha
+        run: echo "SHORT_SHA=`git rev-parse --short HEAD`" >> $GITHUB_ENV
+      - name: Prerelease tag
+        run: npm version --no-git-tag-version prerelease --preid=${SHORT_SHA}
+      - name: Build 
+        run: npm run build
+      - name: Package as .tgz
+        run: npm pack
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Build Artifacts
+          retention-days: 7
+          path: '*.tgz'
