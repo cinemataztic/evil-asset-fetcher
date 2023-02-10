@@ -180,13 +180,15 @@ class DownloadManager {
             return;
           }
           if (stat.isDirectory()) {
-            rimraf.sync(path.resolve(this.workingDirectory, file), (err) => {
+            try {
+              rimraf.sync(path.resolve(this.workingDirectory, file));
+              this._logger(`Purged ${file}`);
+            } catch (error) {
               if (err) {
                 this._logger(`Error purging local cache: ${err}`);
                 return;
               }
-              this._logger(`Purged ${file}`);
-            });
+            }
           } else {
             fs.unlink(path.resolve(this.workingDirectory, file), (err) => {
               if (err)
