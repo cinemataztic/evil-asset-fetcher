@@ -180,7 +180,7 @@ class DownloadManager {
             return;
           }
           if (stat.isDirectory()) {
-            rimraf(path.resolve(this.workingDirectory, file), (err) => {
+            rimraf.sync(path.resolve(this.workingDirectory, file), (err) => {
               if (err) {
                 this._logger(`Error purging local cache: ${err}`);
                 return;
@@ -379,7 +379,7 @@ class DownloadManager {
       if (!res.ok) {
         // Remove the file from the current downloads
         delete this.currentDownloads[filePath];
-        
+
         // Remove the file from the filesystem
         fs.unlink(filePath, () => {
           reject(`Download request failed with status ${res.status}`);
