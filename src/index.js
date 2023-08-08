@@ -245,7 +245,7 @@ class DownloadManager {
               manifest.retryLimit ?? this.defaultRetryLimit
             } with delay ${delayInSeconds} seconds`
           : ""
-      }`
+      } from ${manifest.url}`
     );
     try {
       const file = await this.start(
