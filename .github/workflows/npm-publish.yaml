@@ -18,6 +18,10 @@ jobs:
           registry-url: https://registry.npmjs.org/
           scope: "@cinemataztic"
       - run: npm ci
+      - run: |
+          TAG=$(echo "${{ github.ref }}" | sed -e "s/refs\/tags\///")
+          echo "Updating package version to $TAG"
+          npm version "$TAG" --allow-same-version --no-git-tag-version
       - run: npm run build
       - run: npm publish --access public
         env:
