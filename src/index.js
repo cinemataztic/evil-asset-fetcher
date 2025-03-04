@@ -497,11 +497,20 @@ class DownloadManager {
       // Check if the unzip path is a directory
       if (fs.statSync(unzipToPath).isDirectory()) {
         // Add JSON info file to the game directory
+        // and set file permissions on executables (.x86_64)
         fs.readdir(unzipToPath, (err, files) => {
           if (err) {
             this._logger(`Error reading directory: ${err}`);
             return;
           }
+          files.forEach(function (file) {
+            if (file.endsWith('.x86_64')) {
+              var p = path.resolve(unzipToPath, file);
+              const fd = fs.openSync(p, 'r');
+              fs.fchmodSync(fd, Oo755);
+              fs.closeSync(fd);
+            }
+          });
           fs.writeFileSync(
             path.resolve(unzipToPath, "info.json"),
             JSON.stringify({
