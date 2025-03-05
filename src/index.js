@@ -507,7 +507,7 @@ class DownloadManager {
             if (file.endsWith('.x86_64')) {
               var p = path.resolve(unzipToPath, file);
               const fd = fs.openSync(p, 'r');
-              fs.fchmodSync(fd, Oo755);
+              fs.fchmodSync(fd, 0o755);
               fs.closeSync(fd);
             }
           });
