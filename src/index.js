@@ -176,7 +176,7 @@ class DownloadManager {
         // If the file is a directory, delete the directory
         fs.stat(path.resolve(this.workingDirectory, file), (err, stat) => {
           if (err) {
-            this._logger(`Error checking local cache: ${err}`);
+            console.error(`Error checking local cache: ${err}`);
             return;
           }
           if (stat.isDirectory()) {
@@ -185,14 +185,15 @@ class DownloadManager {
               this._logger(`Purged ${file}`);
             } catch (error) {
               if (err) {
-                this._logger(`Error purging local cache: ${err}`);
+                console.error(`Error purging local cache: ${err}`);
                 return;
               }
             }
           } else {
             fs.unlink(path.resolve(this.workingDirectory, file), (err) => {
               if (err)
-                return this._logger(`Error deleting file (${file}): ${err}`);
+                console.error(`Error deleting file (${file}): ${err}`);
+                return;
               this._logger(`Deleted ${file}`);
             });
           }
@@ -224,7 +225,7 @@ class DownloadManager {
 
     // Check if the retry limit has been reached
     if (fileLog.retries > (manifest.retryLimit ?? this.defaultRetryLimit)) {
-      this._logger(
+      console.error(
         `Retry limit reached for ${manifest.fileName} (${fileLog.retries}/${
           manifest.retryLimit ?? this.defaultRetryLimit
         })`
@@ -273,7 +274,7 @@ class DownloadManager {
         };
       }
     } catch (err) {
-      this._logger(`Error downloading ${manifest.fileName}: ${err}`);
+      console.error(`Error downloading ${manifest.fileName}: ${err}`);
 
       const message = err.message ?? err;
 
@@ -301,7 +302,7 @@ class DownloadManager {
         this.downloadManifest = await this.getManifest();
         this._logger("Download manifest retrieved");
       } catch (error) {
-        this._logger(`Error getting download manifest: ${error}`);
+        console.error(`Error getting download manifest: ${error}`);
         return; // Don't continue if there was an error getting the manifest
       }
     }
@@ -500,7 +501,7 @@ class DownloadManager {
         // and set file permissions on executables (.x86_64)
         fs.readdir(unzipToPath, (err, files) => {
           if (err) {
-            this._logger(`Error reading directory: ${err}`);
+            console.error(`Error reading directory: ${err}`);
             return;
           }
           files.forEach(function (file) {
@@ -526,7 +527,7 @@ class DownloadManager {
       // Delete the zip file after extraction
       fs.unlink(filePath, (err) => {
         if (err) {
-          this._logger(`Error deleting zip file: ${err}`);
+          console.error(`Error deleting zip file: ${err}`);
         }
       });
     }
@@ -545,7 +546,7 @@ class DownloadManager {
         },
         (err) => {
           if (err) {
-            this._logger(`Error creating working directory: ${err}`);
+            console.error(`Error creating working directory: ${err}`);
           }
         }
       );
