@@ -192,7 +192,8 @@ class DownloadManager {
           } else {
             fs.unlink(path.resolve(this.workingDirectory, file), (err) => {
               if (err)
-                return console.error(`Error deleting file (${file}): ${err}`);
+                console.error(`Error deleting file (${file}): ${err}`);
+                return;
               this._logger(`Deleted ${file}`);
             });
           }
